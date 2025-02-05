@@ -6,10 +6,10 @@ import {
     onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 
-// Initialize Google Auth Provider
+// Google Auth Provider
 const provider = new GoogleAuthProvider();
 
-// Update UI based on authentication state
+// Update UI
 const updateUI = (user) => {
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
