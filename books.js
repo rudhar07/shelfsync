@@ -1,13 +1,28 @@
+import { auth } from './firebase-config.js';
+
 // Book display and search functionality
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
 
 // Fetch books from Google Books API
-async function fetchBooks(query = '', maxResults = 20) {
+async function fetchBooks(query = '', filters = {}) {
     try {
-        const searchQuery = query ? `?q=${encodeURIComponent(query)}` : '?q=subject:fiction'; // Default to fiction books if no query
-        const response = await fetch(`${GOOGLE_BOOKS_API_BASE}${searchQuery}&maxResults=${maxResults}`);
+        let searchQuery = query ? `?q=${encodeURIComponent(query)}` : '?q=books';
+
+        // Add genre to search query if selected
+        if (filters.genre) {
+            searchQuery += `+subject:${filters.genre}`;
+        }
+
+        // Add language filter if selected
+        if (filters.language) {
+            searchQuery += `&langRestrict=${filters.language}`;
+        }
+
+        const response = await fetch(`${GOOGLE_BOOKS_API_BASE}${searchQuery}&maxResults=20`);
         const data = await response.json();
-        return data.items || [];
+
+        if (!data.items) return [];
+        return data.items;
     } catch (error) {
         console.error('Error fetching books:', error);
         return [];
@@ -56,27 +71,60 @@ async function initializeBooksDisplay() {
 function updateSearchHandler() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.querySelector('.search-btn');
+    const genreSelect = document.getElementById('genreSelect');
+    const yearFrom = document.getElementById('yearFrom');
+    const yearTo = document.getElementById('yearTo');
+    const languageSelect = document.getElementById('languageSelect');
 
-    const handleSearch = async (query) => {
-        const books = await fetchBooks(query);
+    const handleSearch = async () => {
+        const filters = {
+            genre: genreSelect.value,
+            yearFrom: yearFrom.value ? parseInt(yearFrom.value) : null,
+            yearTo: yearTo.value ? parseInt(yearTo.value) : null,
+            language: languageSelect.value
+        };
+        
+        const books = await fetchBooks(searchInput.value, filters);
         displayBooks(books);
     };
 
-    searchBtn.addEventListener('click', () => {
-        handleSearch(searchInput.value);
+    // Add event listeners for all filter changes
+    [searchBtn, genreSelect, languageSelect].forEach(element => {
+        element.addEventListener('change', handleSearch);
     });
 
+    [yearFrom, yearTo].forEach(element => {
+        element.addEventListener('change', () => {
+            if ((!yearFrom.value || yearFrom.value >= 1800) && 
+                (!yearTo.value || yearTo.value <= 2024)) {
+                handleSearch();
+            }
+        });
+    });
+
+    searchBtn.addEventListener('click', handleSearch);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            handleSearch(searchInput.value);
+            handleSearch();
         }
     });
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    initializeBooksDisplay();
-    updateSearchHandler();
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            initializeBooksDisplay();
+            updateSearchHandler();
+        } else {
+            if (!sessionStorage.getItem('reloaded')) {
+                sessionStorage.setItem('reloaded', 'true');
+                location.reload();
+            } else {
+                sessionStorage.removeItem('reloaded');
+            }
+        }
+    });
 });
 
 export { initializeBooksDisplay, updateSearchHandler };
