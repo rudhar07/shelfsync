@@ -18,7 +18,7 @@ async function fetchBooks(query = '', filters = {}) {
             searchQuery += `&langRestrict=${filters.language}`;
         }
 
-        const response = await fetch(`${GOOGLE_BOOKS_API_BASE}${searchQuery}&maxResults=20`);
+        const response = await fetch(`${GOOGLE_BOOKS_API_BASE}${searchQuery}&maxResults=40`);
         const data = await response.json();
 
         if (!data.items) return [];
