@@ -1,5 +1,8 @@
 import { auth } from './firebase-config.js';
 
+
+
+
 // Book display and search functionality
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
 
