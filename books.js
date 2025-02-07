@@ -1,8 +1,6 @@
 import { auth } from './firebase-config.js';
 
 
-
-
 // Book display and search functionality
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
 
@@ -52,7 +50,7 @@ function createBookCard(book) {
     `;
 }
 
-// Display books in the main content area
+// Display books in the main area
 function displayBooks(books) {
     const mainContent = document.getElementById('mainContent');
     if (books.length === 0) {
@@ -64,7 +62,7 @@ function displayBooks(books) {
     mainContent.innerHTML = `<div class="books-grid">${booksHTML}</div>`;
 }
 
-// Initialize books display
+// initiate books display
 async function initializeBooksDisplay() {
     const books = await fetchBooks();
     displayBooks(books);
