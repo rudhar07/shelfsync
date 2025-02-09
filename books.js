@@ -48,7 +48,7 @@ async function saveBook(bookId) {
         // Update click handler
         actionBtn.removeEventListener('click', saveBook);
         actionBtn.addEventListener('click', () => removeSavedBook(bookId));
-    } catch (error) {
+    } catch (error) {  // show error message if book is not saved
         console.error('Error saving book:', error);
         alert('Failed to save book. Please try again.');
     }
@@ -71,7 +71,7 @@ async function removeSavedBook(bookId) {
         await deleteDoc(doc(db, 'savedBooks', docToDelete.id));
         alert('Book removed from saved collection');
 
-        // Get the book element and update its button
+        // Get the book element
         const bookElement = document.querySelector(`[data-book-id="${bookId}"]`);
         if (bookElement) {
             const actionBtn = bookElement.querySelector('.book-action-btn');

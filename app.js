@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Will implement search functionality later
     };
 
-  // Event listeners
+  // Event listener
     searchBtn.addEventListener('click', () => {
         handleSearch(searchInput.value);
     });
