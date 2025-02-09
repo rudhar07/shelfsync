@@ -11,18 +11,15 @@ import {
 
 const GOOGLE_BOOKS_API_BASE = 'https://www.googleapis.com/books/v1/volumes';
 
-
 async function saveBook(bookId) {
     if (!auth.currentUser) return;
     
     try {
-        // First find the book in the current display
         const bookElement = document.querySelector(`[data-book-id="${bookId}"]`);
         if (!bookElement) {
             throw new Error('Book not found in current display');
         }
 
-        // Extract book data from the element
         const bookData = {
             userId: auth.currentUser.uid,
             bookId: bookId,
@@ -33,7 +30,6 @@ async function saveBook(bookId) {
             savedAt: new Date().toISOString()
         };
 
-        // Check if book is already saved
         const existingBook = await checkIfBookExists(bookId);
         if (existingBook) {
             alert('This book is already saved!');
@@ -43,11 +39,15 @@ async function saveBook(bookId) {
         await addDoc(collection(db, 'savedBooks'), bookData);
         alert('Book saved successfully!');
         
-        // Update the button
-        const saveBtn = bookElement.querySelector('.book-action-btn');
-        saveBtn.textContent = 'Remove';
-        saveBtn.classList.remove('save-btn');
-        saveBtn.classList.add('remove-btn');
+        // Replace save button with remove button
+        const actionBtn = bookElement.querySelector('.book-action-btn');
+        actionBtn.textContent = 'Remove';
+        actionBtn.classList.remove('save-btn');
+        actionBtn.classList.add('remove-btn');
+        
+        // Update click handler
+        actionBtn.removeEventListener('click', saveBook);
+        actionBtn.addEventListener('click', () => removeSavedBook(bookId));
     } catch (error) {
         console.error('Error saving book:', error);
         alert('Failed to save book. Please try again.');
@@ -70,6 +70,19 @@ async function removeSavedBook(bookId) {
         const docToDelete = querySnapshot.docs[0];
         await deleteDoc(doc(db, 'savedBooks', docToDelete.id));
         alert('Book removed from saved collection');
+
+        // Get the book element and update its button
+        const bookElement = document.querySelector(`[data-book-id="${bookId}"]`);
+        if (bookElement) {
+            const actionBtn = bookElement.querySelector('.book-action-btn');
+            actionBtn.textContent = 'Save';
+            actionBtn.classList.remove('remove-btn');
+            actionBtn.classList.add('save-btn');
+            
+            // Update click handler
+            actionBtn.removeEventListener('click', removeSavedBook);
+            actionBtn.addEventListener('click', () => saveBook(bookId));
+        }
     } catch (error) {
         console.error('Error removing book:', error);
         alert('Failed to remove book. Please try again.');
@@ -143,11 +156,9 @@ async function fetchRecommendedBooks() {
 }
 
 // Create book card HTML
-function createBookCard(book, isSaved = false) {
-    // Handle different data structures for API books vs saved books
+async function createBookCard(book, isSaved = false) {
     const isGoogleBook = !!book.volumeInfo;
     
-    // Extract book details based on the data structure
     const bookDetails = {
         id: isGoogleBook ? book.id : book.bookId,
         thumbnail: isGoogleBook 
@@ -164,11 +175,18 @@ function createBookCard(book, isSaved = false) {
             : (book.description?.substring(0, 150) + '...' || 'No description available')
     };
 
-    const saveButtonHtml = auth.currentUser ? `
-        <button class="book-action-btn ${isSaved ? 'remove-btn' : 'save-btn'}" data-book-id="${bookDetails.id}">
-            ${isSaved ? 'Remove' : 'Save'}
-        </button>
-    ` : '';
+    // Only show buttons if user is logged in
+    let saveButtonHtml = '';
+    if (auth.currentUser) {
+        // Check if the book is already saved
+        const isBookSaved = isSaved || await checkIfBookExists(bookDetails.id);
+        
+        saveButtonHtml = `
+            <button class="book-action-btn ${isBookSaved ? 'remove-btn' : 'save-btn'}" data-book-id="${bookDetails.id}">
+                ${isBookSaved ? 'Remove' : 'Save'}
+            </button>
+        `;
+    }
 
     return `
         <div class="book-card" data-book-id="${bookDetails.id}">
@@ -204,7 +222,7 @@ async function checkIfBookExists(bookId) {
 
 
 // Display books in the main area
-function displayBooks(books, isSavedPage = false) {
+async function displayBooks(books, isSavedPage = false) {
     const mainContent = document.getElementById('mainContent');
     if (books.length === 0) {
         mainContent.innerHTML = `<p class="no-results">
@@ -213,17 +231,22 @@ function displayBooks(books, isSavedPage = false) {
         return;
     }
 
-    const booksHTML = books.map(book => createBookCard(book, isSavedPage)).join('');
-    mainContent.innerHTML = `<div class="books-grid">${booksHTML}</div>`;
+    // Create all book cards (now handles async operations)
+    const bookCardsPromises = books.map(book => createBookCard(book, isSavedPage));
+    const bookCards = await Promise.all(bookCardsPromises);
+    
+    mainContent.innerHTML = `<div class="books-grid">${bookCards.join('')}</div>`;
 
     // Add event listeners to all book action buttons
     document.querySelectorAll('.book-action-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const bookId = e.target.dataset.bookId;
-            if (isSavedPage) {
+            if (button.classList.contains('remove-btn')) {
                 await removeSavedBook(bookId);
-                // Refresh the saved books display after removal
-                initializePageContent('saved');
+                if (isSavedPage) {
+                    // Refresh the saved books display after removal
+                    initializePageContent('saved');
+                }
             } else {
                 await saveBook(bookId);
             }
