@@ -340,19 +340,25 @@ function updateSearchHandler() {
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged((user) => {
-        if (user) {
-            try {
-                setupNavigation();
-                // Set home as active by default
-                document.getElementById('homeLink')?.classList.add('active');
-                initializePageContent('home');
-                updateSearchHandler();
-            } catch (error) {
-                console.error('Error initializing page:', error);
+        try {
+            setupNavigation();
+            // Set home as active by default
+            document.getElementById('homeLink')?.classList.add('active');
+            initializePageContent('home');
+            updateSearchHandler();
+            if (user) {
+                localStorage.removeItem('loggedOut');
+            } else {
+                console.log('User not logged in');
+                const mainContent = document.getElementById('mainContent');
+                mainContent.innerHTML = `<p class="no-results">Please log in to save books on ShelfSync.</p>`;
+                if (!localStorage.getItem('loggedOut')) {
+                    localStorage.setItem('loggedOut', 'true');
+                    location.reload();
+                }
             }
-        } else {
-            // Handle not logged in state
-            console.log('User not logged in');
+        } catch (error) {
+            console.error('Error initializing page:', error);
         }
     });
 });
