@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 console.log('User not logged in');
                 const mainContent = document.getElementById('mainContent');
-                mainContent.innerHTML = `<p class="no-results">Please log in to save books on ShelfSync.</p>`;
+                mainContent.innerHTML += `<p class="no-results">Please log in to save books on ShelfSync.</p>`;
                 if (!localStorage.getItem('loggedOut')) {
                     localStorage.setItem('loggedOut', 'true');
                     location.reload();
